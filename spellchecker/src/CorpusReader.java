@@ -113,6 +113,7 @@ public class CorpusReader
         String[] words = NGram.split(" ");
         if(NGram == null || NGram.length() == 0 || words.length != 2)
         {
+            System.out.println(words.length);
             throw new IllegalArgumentException("NGram must be non-empty.");
         }
         
@@ -120,8 +121,8 @@ public class CorpusReader
         double smoothedCount = 0.0;
         
         int nGramCount = getNGramCount(NGram) + 1;
-        smoothedCount = nGramCount / getNGramCount(words[0]);
+        smoothedCount = (double) nGramCount / (double) getNGramCount(words[0]);
         
-        return smoothedCount;        
+        return (double) smoothedCount;        
     }
 }

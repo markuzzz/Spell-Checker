@@ -62,6 +62,13 @@ public class ConfusionMatrixReader {
     public int getConfusionCount(String error, String correct) 
     {
         Integer count = confusionMatrix.get(error+"|"+correct);
-        return count==null?0:count;
+        count = count==null?0:count;
+        return count + 1; // smoothing
+    }
+    
+    public int getCharCount(String sequence) {
+        Integer count = countMatrix.get(sequence);
+        count = count==null?0:count;
+        return count + 1; // smoothing
     }
 }

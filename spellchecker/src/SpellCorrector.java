@@ -35,17 +35,20 @@ public class SpellCorrector {
                 String correction = "";
                 Map<String,Double> candidates = getCandidateWords(words[i]);
                 for(String canWord : candidates.keySet()) {
-                    double prob = candidates.get(canWord);
+                    double prob = Math.log(candidates.get(canWord));
                     if(i != 0) {
-                        prob = prob * cr.getSmoothedCount(words[i - 1] + words[i]);
+                        prob = prob * Math.log(cr.getSmoothedCount(words[i - 1] + " " 
+                                + canWord));
                     }
                     if(i != (words.length - 1)) {
-                        prob = prob * cr.getSmoothedCount(words[i] + words[i + 1]);
+                        prob = prob * Math.log(cr.getSmoothedCount(canWord + " " +
+                                words[i + 1]));
                     }
                     if(prob > highestProb) {
                         highestProb = prob;
                         correction = canWord;
                     }
+                    
                 }
                 if (correction == "") {
                     throw new IllegalStateException("no suitable candidate");
@@ -54,9 +57,6 @@ public class SpellCorrector {
                 correctedWords++;
             }
         }
-        
-        
-        getCandidateWords("tha");
         
         
         
@@ -70,28 +70,32 @@ public class SpellCorrector {
         
         Set<String> candidateWords = new HashSet();
         String newWord;
+        int confusion;
+        int count;
+        double probability;
+        
+        // add this word if it is correctly spelled with probability 0.95
+        if (this.cr.inVocabulary(word)) {
+            mapOfWords.put(word, 0.95);
+        }
         
         for(int i = 0; i <= word.length(); i++) {
             for(char c : ALPHABET) {
-                //insertions
+                // fix by insertion
                 newWord = word.substring(0, i) + c;
                 newWord = newWord + word.substring(i, word.length());
-                if (this.cr.inVocabulary(newWord) ) {
-                    Double confusion1 = 0.0;
-                    Double confusion2 = 0.0;
+                if (this.cr.inVocabulary(newWord)) {
+                    String letterInFront = " ";
                     if (i - 1 > 0) {
-                        confusion1 = (double) this.cmr.getConfusionCount(
-                            String.valueOf(word.charAt(i - 1)), 
-                            String.valueOf(word.charAt(i - 1)) + c
-                        );
+                        letterInFront = String.valueOf(word.charAt(i - 1));
                     }
-                    if (i < word.length()) {
-                        confusion2 = (double) this.cmr.getConfusionCount(
-                            String.valueOf(word.charAt(i)),
-                            c + String.valueOf(word.charAt(i))
-                        );
-                    }
-                    mapOfWords.put(newWord, confusion1 + confusion2);
+                    confusion = this.cmr.getConfusionCount(
+                        letterInFront, 
+                        letterInFront + c
+                    );
+                    count = this.cmr.getCharCount(letterInFront + c);
+                    probability = (double) confusion / (double) count;
+                    mapOfWords.put(newWord, probability);
                 }
             }
         }
@@ -100,30 +104,46 @@ public class SpellCorrector {
             for(char c : ALPHABET) {
                 //replacements
                 newWord = word.substring(0, i) + c;
-                candidateWords.add(newWord + word.substring(i + 1, word.length()));
+                newWord = newWord + word.substring(i + 1, word.length());
+                if (this.cr.inVocabulary(newWord)) {
+                    confusion = this.cmr.getConfusionCount(
+                            String.valueOf(word.charAt(i)), String.valueOf(c)
+                    );
+                    count = this.cmr.getCharCount(String.valueOf(c));
+                    probability = (double) confusion / (double) count;
+                    mapOfWords.put(newWord, probability);
+                }
             }
             
-            //deletions
+            // fix by deletion
             newWord = word.substring(0, i);
             newWord = newWord + word.substring(i + 1, word.length());
-            candidateWords.add(newWord);
+            if (this.cr.inVocabulary(newWord)) {
+                confusion = this.cmr.getConfusionCount(
+                        " " + String.valueOf(word.charAt(i)), " "
+                );
+                count = this.cmr.getCharCount(" ");
+                probability = (double) confusion / (double) count;
+                mapOfWords.put(newWord, probability);
+            }
         }
               
         //transpositions
         for(int i = 0; i < word.length() - 1; i++) { 
             newWord = word.substring(0, i) + word.charAt(i + 1) + word.charAt(i)
                     + word.substring(i+2, word.length());
-            //System.out.println(newWord);
-            candidateWords.add(newWord);
+            if (this.cr.inVocabulary(newWord)) {
+                confusion = this.cmr.getConfusionCount(
+                        word.substring(i, i + 2), 
+                        String.valueOf(word.charAt(i + 1)) + 
+                                String.valueOf(word.charAt(i))
+                );
+                count = this.cmr.getCharCount(word.substring(i, i + 2));
+                probability = (double) confusion / (double) count;
+                mapOfWords.put(newWord, probability);
+            }
         }       
 
-
-        for(String s: candidateWords) {
-            System.out.println(s);
-        }
-        
-        
-        
         return mapOfWords;
     }            
 }
