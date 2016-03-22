@@ -13,7 +13,7 @@ public class CorpusReader
     final static String VOCFILE_LOC = "samplevoc.txt";
     
     private HashMap<String,Integer> ngrams;
-    private Set<String> vocabulary;
+    public Set<String> vocabulary;
         
     public CorpusReader() throws IOException
     {  
@@ -110,15 +110,17 @@ public class CorpusReader
     
     public double getSmoothedCount(String NGram)
     {
-        if(NGram == null || NGram.length() == 0)
+        String[] words = NGram.split(" ");
+        if(NGram == null || NGram.length() == 0 || words.length != 2)
         {
             throw new IllegalArgumentException("NGram must be non-empty.");
         }
         
+        
         double smoothedCount = 0.0;
         
-        /** ADD CODE HERE **/
-        
+        int nGramCount = getNGramCount(NGram) + 1;
+        smoothedCount = nGramCount / getNGramCount(words[0]);
         
         return smoothedCount;        
     }
