@@ -29,6 +29,9 @@ public class SpellCorrector {
         String finalSuggestion = "";
         double highestProb;
         
+        /*
+            First, fix the words that are not in the dictionary.
+        */
         for(int i = 0; i < words.length; i++) {
             if(!cr.inVocabulary(words[i])) {
                 highestProb = 0;
@@ -55,13 +58,36 @@ public class SpellCorrector {
                 }
                 words[i] = correction;
                 correctedWords++;
+                if (correctedWords == 2) {
+                    finalSuggestion = String.join(" ", words);
+                    return finalSuggestion.trim();
+                }
             }
         }
         
+        /*
+            Fix words that are in vocabulary
+        */
+        ArrayList<Boolean[]> errorCombinations = 
+                getErrorCombinations(correctedWords, words.length, phrase);
         
+        // look for all candidates
         
         return finalSuggestion.trim();
     }    
+    
+    /**
+     * Generates all combinations of positions where faulty words can be located
+     * given the correctedWords and the phrase-length constraints.
+     * 
+     * @param correctedWords
+     * @param length
+     * @return 
+     */
+    public ArrayList<Boolean[]> getErrorCombinations(int correctedWords, 
+            int length, String initialPhrase) {
+        return new ArrayList<Boolean[]>();
+    }
       
     /** returns a map with candidate words and their noisy channel probability. **/
     public Map<String,Double> getCandidateWords(String word)
