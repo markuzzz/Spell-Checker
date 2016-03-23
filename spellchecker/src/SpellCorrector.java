@@ -3,6 +3,7 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
+import java.lang.*;
 
 public class SpellCorrector {
     final private CorpusReader cr;
@@ -68,8 +69,8 @@ public class SpellCorrector {
         /*
             Fix words that are in vocabulary
         */
-        ArrayList<Boolean[]> errorCombinations = 
-                getErrorCombinations(correctedWords, words.length, phrase);
+        HashSet<boolean[]> errorCombinations = 
+                getErrorCombinations(correctedWords, words.length, phrase, 2);
         
         // look for all candidates
         
@@ -84,10 +85,53 @@ public class SpellCorrector {
      * @param length
      * @return 
      */
-    public ArrayList<Boolean[]> getErrorCombinations(int correctedWords, 
-            int length, String initialPhrase) {
-        return new ArrayList<Boolean[]>();
+    public HashSet<boolean[]> getErrorCombinations(int correctedWords, 
+            int length, String initialPhrase, int maximumCorrections) {
+        
+        // get initial corrections
+        boolean[] initialCorrections = new boolean[length];
+        String[] wordsInInitialPhrase = initialPhrase.trim().split(" ");
+        for (int word = 0; word < length; word++) {
+            if (!cr.inVocabulary(wordsInInitialPhrase[word])) {
+                initialCorrections[word] = true;
+            } else {
+                initialCorrections[word] = false;
+            }
+        }
+        
+        // return a hashset with all possible corrections
+        return recursiveErrorCombinations(correctedWords, length, initialCorrections,
+                maximumCorrections);
     }
+    
+    public HashSet<boolean[]> recursiveErrorCombinations(int correctedWords, 
+            int length, boolean[] corrections, int maximumCorrections) {
+        if (correctedWords == maximumCorrections) { // leaf
+            HashSet<boolean[]> list = new HashSet<boolean[]>();
+            list.add(corrections);
+            return list;
+        } else { // add one correction
+            HashSet<boolean[]> list = new HashSet<boolean[]>();
+            for (int word = 0; word < length; word++) {
+                // check if this word as well as the word before and after have
+                // not been corrected
+                if (corrections[word] == false 
+                        && corrections[Math.max(0, word - 1)] == false
+                        && corrections[Math.min(length - 1, word + 1)] == false) 
+                {
+                    boolean[] newCorrections = corrections.clone();
+                    newCorrections[word] = true;
+                    // add this combination
+                    list.add(newCorrections);
+                    // add children combinations
+                    list.addAll(recursiveErrorCombinations(correctedWords + 1,
+                            length, newCorrections, maximumCorrections));
+                }
+            }
+            return list;
+        }
+    }
+
       
     /** returns a map with candidate words and their noisy channel probability. **/
     public Map<String,Double> getCandidateWords(String word)
