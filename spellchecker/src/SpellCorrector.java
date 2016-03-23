@@ -112,6 +112,7 @@ public class SpellCorrector {
             return list;
         } else { // add one correction
             HashSet<boolean[]> list = new HashSet<boolean[]>();
+            list.add(corrections);
             for (int word = 0; word < length; word++) {
                 // check if this word as well as the word before and after have
                 // not been corrected
