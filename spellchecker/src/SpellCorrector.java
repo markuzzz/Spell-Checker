@@ -73,9 +73,43 @@ public class SpellCorrector {
                 getErrorCombinations(correctedWords, words.length, phrase, 2);
         
         // look for all candidates
+        Map<String[],Double[]> candidateSentences = new HashMap();
+        for (boolean[] errorCombi: errorCombinations) {
+            double[] probabilities = new double[words.length];
+            getCandidateSentence(errorCombi, candidateSentences, words, probabilities, 0);
+        }
+        
+        for(String[] canSen : candidateSentences.keySet()) {
+            System.out.println(String.join(" ", canSen));
+        }
         
         return finalSuggestion.trim();
     }    
+    
+    public void getCandidateSentence(boolean[] errorCombination,
+            Map sentences, String[] words, double[] probabilities, int index) {
+        
+        if(index == errorCombination.length) {
+            sentences.put(words, probabilities);
+        } else {
+            //System.out.println(index);
+            if (errorCombination[index] == true) {
+                Map<String,Double> candidates = getCandidateWords(words[index]);
+                for(String canWord : candidates.keySet()) {
+                    String[] newWords = words.clone();
+                    //System.out.println(newWords.length + ", "+ index);
+                    newWords[index] = canWord;
+                    double[] newProbabilities = probabilities.clone();
+                    newProbabilities[index] = candidates.get(canWord);
+                    getCandidateSentence(errorCombination, sentences, newWords, newProbabilities, index+1);
+                }
+            } else {
+                probabilities[index] = 1.0;
+                index++;
+                getCandidateSentence(errorCombination, sentences, words, probabilities, index);
+            }
+        }
+    }
     
     /**
      * Generates all combinations of positions where faulty words can be located
