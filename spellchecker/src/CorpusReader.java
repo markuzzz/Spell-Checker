@@ -114,7 +114,7 @@ public class CorpusReader
         if(NGram == null || NGram.length() == 0 || words.length != 2)
         {
             System.out.println(words.length);
-            throw new IllegalArgumentException("NGram must be non-empty.");
+            throw new IllegalArgumentException("NGram must be of length two");
         }
         
         

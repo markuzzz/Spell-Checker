@@ -27,6 +27,7 @@ public class SpellCorrector {
             
         String[] words = phrase.split(" ");
         int correctedWords = 0;
+        String[] suggestion;
         String finalSuggestion = "";
         double highestProb;
         
@@ -35,19 +36,23 @@ public class SpellCorrector {
         */
         for(int i = 0; i < words.length; i++) {
             if(!cr.inVocabulary(words[i])) {
-                highestProb = 0;
+                highestProb = Integer.MIN_VALUE;
                 String correction = "";
                 Map<String,Double> candidates = getCandidateWords(words[i]);
                 for(String canWord : candidates.keySet()) {
+                    //System.out.println(canWord);
                     double prob = Math.log(candidates.get(canWord));
+                    //System.out.println(prob);
                     if(i != 0) {
-                        prob = prob * Math.log(cr.getSmoothedCount(words[i - 1] + " " 
+                        prob = prob + Math.log(cr.getSmoothedCount(words[i - 1] + " " 
                                 + canWord));
                     }
+                    //System.out.println(prob);
                     if(i != (words.length - 1)) {
-                        prob = prob * Math.log(cr.getSmoothedCount(canWord + " " +
+                        prob = prob + Math.log(cr.getSmoothedCount(canWord + " " +
                                 words[i + 1]));
                     }
+                    //System.out.println(prob);
                     if(prob > highestProb) {
                         highestProb = prob;
                         correction = canWord;
@@ -66,49 +71,103 @@ public class SpellCorrector {
             }
         }
         
-        /*
-            Fix words that are in vocabulary
-        */
+        //get all combinations of words that contain an error
         HashSet<boolean[]> errorCombinations = 
                 getErrorCombinations(correctedWords, words.length, phrase, 2);
         
-        // look for all candidates
-        Map<String[],Double[]> candidateSentences = new HashMap();
+        // look for best candidate sentences
+        Map<String[],double[]> candidateSentences = new HashMap();
         for (boolean[] errorCombi: errorCombinations) {
-            double[] probabilities = new double[words.length];
-            getCandidateSentence(errorCombi, candidateSentences, words, probabilities, 0);
+            getCandidateSentence(errorCombi, candidateSentences, words);
         }
         
-        for(String[] canSen : candidateSentences.keySet()) {
-            System.out.println(String.join(" ", canSen));
+        //evaluate the candidate sentences and pick the best
+        highestProb = Integer.MIN_VALUE;
+        suggestion = words;
+        for(String[] canSen : candidateSentences.keySet()) { //evaluate each candidate
+            double prob;
+            prob = Math.log(evaluateBigramSentence(canSen)); 
+            // use the noisy channel probabilities for the corrected words
+            for(double noisyProb: candidateSentences.get(canSen)) { 
+                if(Double.compare(noisyProb, 1.0) != 0) { //corrected word
+                    prob += Math.log(noisyProb);
+                }
+            }
+            if (prob > highestProb) { //new best candidate
+                highestProb = prob;
+                suggestion = canSen;
+            }
         }
+        
+        finalSuggestion = String.join(" ", suggestion);
         
         return finalSuggestion.trim();
     }    
     
-    public void getCandidateSentence(boolean[] errorCombination,
-            Map sentences, String[] words, double[] probabilities, int index) {
-        
-        if(index == errorCombination.length) {
-            sentences.put(words, probabilities);
-        } else {
-            //System.out.println(index);
-            if (errorCombination[index] == true) {
-                Map<String,Double> candidates = getCandidateWords(words[index]);
-                for(String canWord : candidates.keySet()) {
-                    String[] newWords = words.clone();
-                    //System.out.println(newWords.length + ", "+ index);
-                    newWords[index] = canWord;
-                    double[] newProbabilities = probabilities.clone();
-                    newProbabilities[index] = candidates.get(canWord);
-                    getCandidateSentence(errorCombination, sentences, newWords, newProbabilities, index+1);
-                }
-            } else {
-                probabilities[index] = 1.0;
-                index++;
-                getCandidateSentence(errorCombination, sentences, words, probabilities, index);
+    //combines the probabilities for all the bigrams in a sentence
+    public double evaluateBigramSentence(String[] words) {
+        double prob = 0;
+        for(int i = 0; i < words.length; i++) {
+            //prob bigram with word in front
+            if(i != 0) {
+                prob = prob + Math.log(cr.getSmoothedCount(words[i - 1] + " " 
+                        + words[i]));
+            }
+            //prob bigram with word afterwards
+            if(i != (words.length - 1)) {
+                prob = prob + Math.log(cr.getSmoothedCount(words[i] + " " +
+                        words[i + 1]));
             }
         }
+        return prob;
+    }
+    
+    /**
+     * This method adds the best possible sentence under the assumption words
+     * specified in errorCombination are wrong.
+     * 
+     * @param errorCombination indicates which words in the sentence are considered wrong
+     * @param sentences map of sentences it will add a sentence to
+     * @param words orignal sentence
+     */
+    public void getCandidateSentence(boolean[] errorCombination, Map sentences, String[] words) {
+        double[] probabilities = new double[words.length]; //noisy channel probabilities per word
+        String[] newSentence = words.clone();
+        for(int i = 0; i < words.length; i++) {
+            if (errorCombination[i] == true) { //assume word is wrong
+                double prob;
+                double highestProb = Integer.MIN_VALUE;
+                String finalCandidate = "";
+                Map<String,Double> candidates = getCandidateWords(words[i]);
+                //loop over all candidate words and determine the best option
+                for(String canWord : candidates.keySet()) {
+                    prob = 0;
+                    //prob bigram with word in front
+                    if(i != 0) {
+                        prob = prob + Math.log(cr.getSmoothedCount(words[i - 1] + " " 
+                                + canWord));
+                    }
+                    //prob bigram with word afterwords
+                    if(i != (words.length - 1)) {
+                        prob = prob + Math.log(cr.getSmoothedCount(canWord + " " +
+                                words[i + 1]));
+                    }
+                    prob += Math.log(candidates.get(canWord)); //noisy channel prob
+                    if (prob > highestProb) { //found new best candidate
+                        highestProb = prob;
+                        finalCandidate = canWord;
+                        probabilities[i] = prob;
+                    }
+                }
+                newSentence[i] = finalCandidate; //correct sentence
+                if (finalCandidate == "") {
+                    throw new IllegalStateException("no suitable candidate");
+                }
+            } else { //word assumed correct
+                probabilities[i] = 1.0;
+            }
+        }
+        sentences.put(newSentence, probabilities); //add sentence to map
     }
     
     /**
