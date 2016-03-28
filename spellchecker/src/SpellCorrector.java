@@ -21,7 +21,9 @@ public class SpellCorrector {
     }
     
     /**
-     * Corrects a phrase.
+     * Corrects a phrase, assuming at most 2 words in the phrase are incorrect,
+     * mistakes have Damerau-Levenshtein distance of at most 1 and no two
+     * consecutive words contain a mistake.
      * 
      * @param phrase possibly incorrectly spelled phrase.
      * @return plausible correction for the phrase.
