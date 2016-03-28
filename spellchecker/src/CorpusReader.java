@@ -108,7 +108,7 @@ public class CorpusReader
        return vocabulary.contains(word);
     }    
     
-    public double getSmoothedCount(String NGram)
+    public double getSmoothedCount(String NGram, boolean candidateLeft)
     {
         String[] words = NGram.split(" ");
         if(NGram == null || NGram.length() == 0 || words.length != 2)
@@ -117,11 +117,13 @@ public class CorpusReader
             throw new IllegalArgumentException("NGram must be of length two");
         }
         
-        
-        double smoothedCount = 0.0;
-        
-        int nGramCount = getNGramCount(NGram) + 1;
-        smoothedCount = (double) nGramCount / (double) getNGramCount(words[0]);
+        double smoothedCount;
+        int nGramCount = getNGramCount(NGram);
+        if (candidateLeft) {
+            smoothedCount = (double) (nGramCount + 1) / (double) (getNGramCount(words[1]) + 1);
+        } else {
+            smoothedCount = (double) (nGramCount + 1) / (double) (getNGramCount(words[0]) + 1);
+        }
         
         return (double) smoothedCount;        
     }

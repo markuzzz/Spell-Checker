@@ -55,15 +55,16 @@ public class SpellCorrector {
                     if (i != 0) {
                         // if not the first word, evaluate bigram with word in front
                         bigramprob += Math.log(cr.getSmoothedCount(words[i - 1] + " " 
-                                + canWord));
+                                + canWord, false));
                     }
                     if (i != (words.length - 1)) {
                         // if not the last word, evaluate bigram with word after
                         bigramprob += Math.log(cr.getSmoothedCount(canWord + " " +
-                                words[i + 1]));
+                                words[i + 1], true));
                     }
+                    
                     // set the final probability as a linear combination
-                    prob = 300 * prob + 8 * bigramprob;
+                    prob = 6 * prob + 12 * bigramprob;
                     
                     if (prob > highestProb) {
                         // this is the best candidate so far
@@ -103,13 +104,15 @@ public class SpellCorrector {
         suggestion = words;
         for (String[] canSen : candidateSentences.keySet()) { // evaluate each candidate
             double prob;
-            prob = Math.log(evaluateBigramSentence(canSen)); 
+            prob = evaluateBigramSentence(canSen);
+            
             // use the noisy channel probabilities for the corrected words
             for (double noisyProb: candidateSentences.get(canSen)) { 
                 if (Double.compare(noisyProb, 1.0) != 0) { // corrected word
-                    prob += Math.log(noisyProb);
+                    prob += (double) Math.log(noisyProb);
                 }
             }
+            //System.out.println(String.join(" ", canSen)+": prob "+(prob));
             if (prob > highestProb) { // new best candidate
                 highestProb = prob;
                 suggestion = canSen;
@@ -128,12 +131,12 @@ public class SpellCorrector {
             //prob bigram with word in front
             if (i != 0) {
                 prob = prob + Math.log(cr.getSmoothedCount(words[i - 1] + " " 
-                        + words[i]));
+                        + words[i], true));
             }
             //prob bigram with word afterwards
             if (i != (words.length - 1)) {
                 prob = prob + Math.log(cr.getSmoothedCount(words[i] + " " +
-                        words[i + 1]));
+                        words[i + 1], false));
             }
         }
         return prob;
@@ -162,12 +165,12 @@ public class SpellCorrector {
                     // probability for the bigram with word in front
                     if (i != 0) {
                         prob = prob + Math.log(cr.getSmoothedCount(words[i - 1] + " " 
-                                + canWord));
+                                + canWord, false));
                     }
                     // probability for the bigram with word afterwords
                     if (i != (words.length - 1)) {
                         prob = prob + Math.log(cr.getSmoothedCount(canWord + " " +
-                                words[i + 1]));
+                                words[i + 1], true));
                     }
                     prob += Math.log(candidates.get(canWord)); // noisy channel prob
                     if (prob > highestProb) { // found new best candidate
@@ -273,7 +276,6 @@ public class SpellCorrector {
     {
         Map<String,Double> mapOfWords = new HashMap<>();
         
-        Set<String> candidateWords = new HashSet();
         String newWord;
         int confusion;
         int count;
