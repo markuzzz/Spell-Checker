@@ -41,7 +41,14 @@ public class SpellChecker {
                 "the development of diabetes is present in mice that carry a transgen",
                 "the development of diabetes is present in moce that carry a transgen",
                 "the development of idabetes is present in mice that carry a transgen",
-                "the development of diabetes us present in mice that harry a transgen"
+                "the development of diabetes us present in mice that harry a transgen",
+                "laying in the national football league was my dream",
+                "this advise is taking into consideration the fact that the govenrment bans political parties",
+                "essentially here has bien no change in japan",
+                "a responses may be any measurable biological parametre that is correlated with the toxicant",
+                "she still refers too me as a friend but i feel i am treated quite batly",
+                "she still refers to me has a friend but i fel i am treated quite badly",
+                "boing gloves shield the knuckles nut the head"
             };
             
             String[] reference = {
@@ -57,6 +64,13 @@ public class SpellChecker {
                 "the development of diabetes is present in mice that carry a transgene",
                 "the development of diabetes is present in mice that carry a transgene",
                 "the development of diabetes is present in mice that carry a transgene",
+                "playing in the national football league was my dream",
+                "this advice is taking into consideration the fact that the government bans political parties",
+                "essentially there has been no change in japan",
+                "a response may be any measurable biological parameter that is correlated with the toxicant",
+                "she still refers to me as a friend but i feel i am treated quite badly",
+                "she still refers to me as a friend but i feel i am treated quite badly",
+                "boxing gloves shield the knuckles not the head"
             };
             
             int grade = 0;
