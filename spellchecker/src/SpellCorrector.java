@@ -51,19 +51,19 @@ public class SpellCorrector {
                 // for all candidate words check the probabilities of their bigrams
                 for (String canWord : candidates.keySet()) {
                     double prob = Math.log(candidates.get(canWord)); // probability for the correction
-                    double bigramprob = 1; // probability for the bigrams
+                    double bigramprob = 0; // probability for the bigrams
                     if (i != 0) {
                         // if not the first word, evaluate bigram with word in front
-                        bigramprob *= Math.log(cr.getSmoothedCount(words[i - 1] + " " 
+                        bigramprob += Math.log(cr.getSmoothedCount(words[i - 1] + " " 
                                 + canWord));
                     }
                     if (i != (words.length - 1)) {
                         // if not the last word, evaluate bigram with word after
-                        bigramprob *= Math.log(cr.getSmoothedCount(canWord + " " +
+                        bigramprob += Math.log(cr.getSmoothedCount(canWord + " " +
                                 words[i + 1]));
                     }
                     // set the final probability as a linear combination
-                    prob = .5 * prob + 1 * bigramprob;
+                    prob = .5 * prob + 3 * bigramprob;
                     
                     if (prob > highestProb) {
                         // this is the best candidate so far

@@ -44,12 +44,34 @@ public class SpellChecker {
                 "the development of diabetes us present in mice that harry a transgen"
             };
             
-            for(String s0: sentences) {
+            String[] reference = {
+                "this assay allowed us to measure a wide variety of conditions",
+                "this assay allowed us to measure a wide variety of conditions",
+                "this assay allowed us to measure a wide variety of conditions",
+                "this assay allowed us to measure a wide variety of conditions",
+                "at the home locations there were traces of water",
+                "at the home locations there were traces of water",
+                "at the home locations there were traces of water",
+                "at the home locations there were traces of water",
+                "the development of diabetes is present in mice that carry a transgen",
+                "the development of diabetes is present in mice that carry a transgen",
+                "the development of diabetes is present in mice that carry a transgen",
+                "the development of diabetes is present in mice that carry a transgen"
+            };
+            
+            int grade = 0;
+            
+            for(int i = 0; i < sentences.length; i++) {
+                String s0 = sentences[i];
                 System.out.println("Input : " + s0);
                 String result=sc.correctPhrase(s0);
                 System.out.println("Answer: " +result);
+                if (result.equals(reference[i])) {
+                    grade++;
+                }
                 System.out.println();
             }
+            System.out.println("Grade: " + grade + "/" + reference.length);
     }
     
     static void peachTest(SpellCorrector sc) throws IOException {
