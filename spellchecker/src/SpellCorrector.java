@@ -40,27 +40,22 @@ public class SpellCorrector {
                 String correction = "";
                 Map<String,Double> candidates = getCandidateWords(words[i]);
                 for(String canWord : candidates.keySet()) {
-                    //System.out.println(canWord);
                     double prob = Math.log(candidates.get(canWord));
-                    //System.out.println(prob);
                     if(i != 0) {
                         prob = prob + Math.log(cr.getSmoothedCount(words[i - 1] + " " 
                                 + canWord));
                     }
-                    //System.out.println(prob);
                     if(i != (words.length - 1)) {
                         prob = prob + Math.log(cr.getSmoothedCount(canWord + " " +
                                 words[i + 1]));
                     }
-                    //System.out.println(prob);
                     if(prob > highestProb) {
                         highestProb = prob;
                         correction = canWord;
                     }
-                    
                 }
-                if (correction == "") {
-                    throw new IllegalStateException("no suitable candidate");
+                if (correction.equals("")) {
+                    throw new IllegalStateException("No suitable candidate");
                 }
                 words[i] = correction;
                 correctedWords++;
@@ -226,8 +221,12 @@ public class SpellCorrector {
         }
     }
 
-      
-    /** returns a map with candidate words and their noisy channel probability. **/
+    /**
+     * Returns a map with candidate words and their noisy channel probability.
+     * 
+     * @param word word to find candidates for
+     * @return map with candidate words and their noisy channel probability
+     */
     public Map<String,Double> getCandidateWords(String word)
     {
         Map<String,Double> mapOfWords = new HashMap<>();
@@ -243,67 +242,87 @@ public class SpellCorrector {
             mapOfWords.put(word, 0.95);
         }
         
-        for(int i = 0; i <= word.length(); i++) {
-            for(char c : ALPHABET) {
-                // fix by insertion
+        // fix by insertion
+        for(int i = 0; i <= word.length(); i++) { // for all characters in word
+            for(char c : ALPHABET) { // for all characters in alphabet
+                // generate new word where c is inserted at position i
                 newWord = word.substring(0, i) + c;
                 newWord = newWord + word.substring(i, word.length());
+                // if the new word exists, determine its probability
                 if (this.cr.inVocabulary(newWord)) {
                     String letterInFront = " ";
                     if (i - 1 > 0) {
                         letterInFront = String.valueOf(word.charAt(i - 1));
                     }
+                    // look up in confusion matrix
                     confusion = this.cmr.getConfusionCount(
                         letterInFront, 
                         letterInFront + c
                     );
+                    // look up the total occurrence of the correct combination
                     count = this.cmr.getCharCount(letterInFront + c);
                     probability = (double) confusion / (double) count;
+                    // add candidate word with probability to the map
                     mapOfWords.put(newWord, probability);
                 }
             }
         }
         
-        for(int i = 0; i < word.length(); i++) {
-            for(char c : ALPHABET) {
-                //replacements
+        for(int i = 0; i < word.length(); i++) { // for all characters in word
+            // fix by substitution
+            for(char c : ALPHABET) { // for all characters in alphabet
+                // generate new word where word[i] is substituted with c
                 newWord = word.substring(0, i) + c;
                 newWord = newWord + word.substring(i + 1, word.length());
+                // if the new word exists, determine its probability
                 if (this.cr.inVocabulary(newWord)) {
+                    // look up in the confusion matrix
                     confusion = this.cmr.getConfusionCount(
                             String.valueOf(word.charAt(i)), String.valueOf(c)
                     );
+                    // look up the total occurrence of the correct combination
                     count = this.cmr.getCharCount(String.valueOf(c));
                     probability = (double) confusion / (double) count;
+                    // add candidate word with probability to the map
                     mapOfWords.put(newWord, probability);
                 }
             }
             
             // fix by deletion
+            // generate new word where character i is deleted
             newWord = word.substring(0, i);
             newWord = newWord + word.substring(i + 1, word.length());
+            // if the new word exists, determine its probability
             if (this.cr.inVocabulary(newWord)) {
+                // look up in the confusion matrix
                 confusion = this.cmr.getConfusionCount(
                         " " + String.valueOf(word.charAt(i)), " "
                 );
+                // look up the total occurrence of the correct combination
                 count = this.cmr.getCharCount(" ");
                 probability = (double) confusion / (double) count;
+                // add candidate word with probability to the map
                 mapOfWords.put(newWord, probability);
             }
         }
               
-        //transpositions
-        for(int i = 0; i < word.length() - 1; i++) { 
+        // fix by transposition
+        for(int i = 0; i < word.length() - 1; i++) { // for all characters in word
+            // generate new word where character i is switched with character i+1
             newWord = word.substring(0, i) + word.charAt(i + 1) + word.charAt(i)
                     + word.substring(i+2, word.length());
+            // if the new word exists, determine its probability
             if (this.cr.inVocabulary(newWord)) {
+                // look up in the confusion matrix
                 confusion = this.cmr.getConfusionCount(
                         word.substring(i, i + 2), 
                         String.valueOf(word.charAt(i + 1)) + 
                                 String.valueOf(word.charAt(i))
                 );
+                // look up the total occurrence of the correct combination
                 count = this.cmr.getCharCount(word.substring(i, i + 2));
                 probability = (double) confusion / (double) count;
+                // add candidate word with probability to the map
                 mapOfWords.put(newWord, probability);
             }
         }       
