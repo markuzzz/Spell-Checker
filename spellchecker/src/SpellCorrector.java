@@ -8,46 +8,61 @@ public class SpellCorrector {
     final private ConfusionMatrixReader cmr;
     
     final char[] ALPHABET = "abcdefghijklmnopqrstuvwxyz'".toCharArray();
-    
-    
-    public SpellCorrector(CorpusReader cr, ConfusionMatrixReader cmr) 
-    {
+        
+    /**
+     * Constructor.
+     * 
+     * @param cr CorpusReader
+     * @param cmr ConfusionMatrixReader
+     */
+    public SpellCorrector(CorpusReader cr, ConfusionMatrixReader cmr) {
         this.cr = cr;
         this.cmr = cmr;
     }
     
-    public String correctPhrase(String phrase)
-    {
-        if(phrase == null || phrase.length() == 0)
-        {
+    /**
+     * Corrects a phrase.
+     * 
+     * @param phrase possibly incorrectly spelled phrase.
+     * @return plausible correction for the phrase.
+     */
+    public String correctPhrase(String phrase) {
+        if (phrase == null || phrase.length() == 0) {
             throw new IllegalArgumentException("phrase must be non-empty.");
         }
-            
+
+        // split the phrase into its words
         String[] words = phrase.split(" ");
+        // counter for corrected words
         int correctedWords = 0;
+        
         String[] suggestion;
         String finalSuggestion = "";
         double highestProb;
         
-        /*
-            First, fix the words that are not in the dictionary.
-        */
-        for(int i = 0; i < words.length; i++) {
-            if(!cr.inVocabulary(words[i])) {
+        // Fix the words that are not in the vocabulary
+        for (int i = 0; i < words.length; i++) { // for all words in the phrase ...
+            if (!cr.inVocabulary(words[i])) { // ... that are not in the vocabulary ...
+                // ... we look for the word in the vocabulary that has the highest probability
                 highestProb = Integer.MIN_VALUE;
-                String correction = "";
+                String correction = ""; // default to empty strings
+                // get all the candidate words for this word along with their probabilities
                 Map<String,Double> candidates = getCandidateWords(words[i]);
-                for(String canWord : candidates.keySet()) {
+                // for all candidate words check the probabilities of their bigrams
+                for (String canWord : candidates.keySet()) {
                     double prob = Math.log(candidates.get(canWord));
-                    if(i != 0) {
+                    if (i != 0) {
+                        // if not the first word, evaluate bigram with word in front
                         prob = prob + Math.log(cr.getSmoothedCount(words[i - 1] + " " 
                                 + canWord));
                     }
-                    if(i != (words.length - 1)) {
+                    if (i != (words.length - 1)) {
+                        // if not the last word, evaluate bigram with word after
                         prob = prob + Math.log(cr.getSmoothedCount(canWord + " " +
                                 words[i + 1]));
                     }
-                    if(prob > highestProb) {
+                    if (prob > highestProb) {
+                        // this is the best candidate so far
                         highestProb = prob;
                         correction = canWord;
                     }
@@ -55,9 +70,14 @@ public class SpellCorrector {
                 if (correction.equals("")) {
                     throw new IllegalStateException("No suitable candidate");
                 }
+                
+                // replace the faulty word by the most suitable candidate
                 words[i] = correction;
-                correctedWords++;
+                
+                correctedWords++; // we have corrected yet another word
+                
                 if (correctedWords == 2) {
+                    // if we have already corrected two words, stop here, we are done
                     finalSuggestion = String.join(" ", words);
                     return finalSuggestion.trim();
                 }
@@ -77,12 +97,12 @@ public class SpellCorrector {
         //evaluate the candidate sentences and pick the best
         highestProb = Integer.MIN_VALUE;
         suggestion = words;
-        for(String[] canSen : candidateSentences.keySet()) { //evaluate each candidate
+        for (String[] canSen : candidateSentences.keySet()) { //evaluate each candidate
             double prob;
             prob = Math.log(evaluateBigramSentence(canSen)); 
             // use the noisy channel probabilities for the corrected words
-            for(double noisyProb: candidateSentences.get(canSen)) { 
-                if(Double.compare(noisyProb, 1.0) != 0) { //corrected word
+            for (double noisyProb: candidateSentences.get(canSen)) { 
+                if (Double.compare(noisyProb, 1.0) != 0) { //corrected word
                     prob += Math.log(noisyProb);
                 }
             }
@@ -100,14 +120,14 @@ public class SpellCorrector {
     //combines the probabilities for all the bigrams in a sentence
     public double evaluateBigramSentence(String[] words) {
         double prob = 0;
-        for(int i = 0; i < words.length; i++) {
+        for (int i = 0; i < words.length; i++) {
             //prob bigram with word in front
-            if(i != 0) {
+            if (i != 0) {
                 prob = prob + Math.log(cr.getSmoothedCount(words[i - 1] + " " 
                         + words[i]));
             }
             //prob bigram with word afterwards
-            if(i != (words.length - 1)) {
+            if (i != (words.length - 1)) {
                 prob = prob + Math.log(cr.getSmoothedCount(words[i] + " " +
                         words[i + 1]));
             }
@@ -126,37 +146,37 @@ public class SpellCorrector {
     public void getCandidateSentence(boolean[] errorCombination, Map sentences, String[] words) {
         double[] probabilities = new double[words.length]; //noisy channel probabilities per word
         String[] newSentence = words.clone();
-        for(int i = 0; i < words.length; i++) {
+        for (int i = 0; i < words.length; i++) {
             if (errorCombination[i] == true) { //assume word is wrong
                 double prob;
                 double highestProb = Integer.MIN_VALUE;
                 String finalCandidate = "";
                 Map<String,Double> candidates = getCandidateWords(words[i]);
                 // loop over all candidate words and determine the best option
-                for(String canWord : candidates.keySet()) {
+                for (String canWord : candidates.keySet()) {
                     prob = 0;
                     // probability for the bigram with word in front
-                    if(i != 0) {
+                    if (i != 0) {
                         prob = prob + Math.log(cr.getSmoothedCount(words[i - 1] + " " 
                                 + canWord));
                     }
                     // probability for the bigram with word afterwords
-                    if(i != (words.length - 1)) {
+                    if (i != (words.length - 1)) {
                         prob = prob + Math.log(cr.getSmoothedCount(canWord + " " +
                                 words[i + 1]));
                     }
-                    prob += Math.log(candidates.get(canWord)); //noisy channel prob
-                    if (prob > highestProb) { //found new best candidate
+                    prob += Math.log(candidates.get(canWord)); // noisy channel prob
+                    if (prob > highestProb) { // found new best candidate
                         highestProb = prob;
                         finalCandidate = canWord;
                         probabilities[i] = prob;
                     }
                 }
-                newSentence[i] = finalCandidate; //correct sentence
+                newSentence[i] = finalCandidate; // correct sentence
                 if (finalCandidate.equals("")) {
                     throw new IllegalStateException("No suitable candidate");
                 }
-            } else { //word assumed correct
+            } else { // word assumed correct
                 probabilities[i] = 1.0;
             }
         }
@@ -261,8 +281,8 @@ public class SpellCorrector {
         }
         
         // fix by insertion
-        for(int i = 0; i <= word.length(); i++) { // for all characters in word
-            for(char c : ALPHABET) { // for all characters in alphabet
+        for (int i = 0; i <= word.length(); i++) { // for all characters in word
+            for (char c : ALPHABET) { // for all characters in alphabet
                 // generate new word where c is inserted at position i
                 newWord = word.substring(0, i) + c;
                 newWord = newWord + word.substring(i, word.length());
@@ -286,9 +306,9 @@ public class SpellCorrector {
             }
         }
         
-        for(int i = 0; i < word.length(); i++) { // for all characters in word
+        for (int i = 0; i < word.length(); i++) { // for all characters in word
             // fix by substitution
-            for(char c : ALPHABET) { // for all characters in alphabet
+            for (char c : ALPHABET) { // for all characters in alphabet
                 // generate new word where word[i] is substituted with c
                 newWord = word.substring(0, i) + c;
                 newWord = newWord + word.substring(i + 1, word.length());
@@ -325,7 +345,7 @@ public class SpellCorrector {
         }
               
         // fix by transposition
-        for(int i = 0; i < word.length() - 1; i++) { // for all characters in word
+        for (int i = 0; i < word.length() - 1; i++) { // for all characters in word
             // generate new word where character i is switched with character i+1
             newWord = word.substring(0, i) + word.charAt(i + 1) + word.charAt(i)
                     + word.substring(i+2, word.length());
