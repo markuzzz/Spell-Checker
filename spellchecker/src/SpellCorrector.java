@@ -1,9 +1,7 @@
-import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
-import java.lang.*;
 
 public class SpellCorrector {
     final private CorpusReader cr;
@@ -123,7 +121,7 @@ public class SpellCorrector {
      * 
      * @param errorCombination indicates which words in the sentence are considered wrong
      * @param sentences map of sentences it will add a sentence to
-     * @param words orignal sentence
+     * @param words original sentence
      */
     public void getCandidateSentence(boolean[] errorCombination, Map sentences, String[] words) {
         double[] probabilities = new double[words.length]; //noisy channel probabilities per word
@@ -134,15 +132,15 @@ public class SpellCorrector {
                 double highestProb = Integer.MIN_VALUE;
                 String finalCandidate = "";
                 Map<String,Double> candidates = getCandidateWords(words[i]);
-                //loop over all candidate words and determine the best option
+                // loop over all candidate words and determine the best option
                 for(String canWord : candidates.keySet()) {
                     prob = 0;
-                    //prob bigram with word in front
+                    // probability for the bigram with word in front
                     if(i != 0) {
                         prob = prob + Math.log(cr.getSmoothedCount(words[i - 1] + " " 
                                 + canWord));
                     }
-                    //prob bigram with word afterwords
+                    // probability for the bigram with word afterwords
                     if(i != (words.length - 1)) {
                         prob = prob + Math.log(cr.getSmoothedCount(canWord + " " +
                                 words[i + 1]));
@@ -155,8 +153,8 @@ public class SpellCorrector {
                     }
                 }
                 newSentence[i] = finalCandidate; //correct sentence
-                if (finalCandidate == "") {
-                    throw new IllegalStateException("no suitable candidate");
+                if (finalCandidate.equals("")) {
+                    throw new IllegalStateException("No suitable candidate");
                 }
             } else { //word assumed correct
                 probabilities[i] = 1.0;
@@ -169,14 +167,20 @@ public class SpellCorrector {
      * Generates all combinations of positions where faulty words can be located
      * given the correctedWords and the phrase-length constraints.
      * 
-     * @param correctedWords
-     * @param length
+     * This method pays attention to the words that have already been corrected as well as to the 
+     * constraints that there are never two consecutive errors and that the maximum amount of errors
+     * is 2.
+     * 
+     * @param correctedWords number of words that are already marked as (scheduled to be) corrected
+     * @param length length of the phrase
+     * @param initialPhrase phrase to start-off with
+     * @param maximumCorrections the maximum number of corrections that are allowed
      * @return 
      */
     public HashSet<boolean[]> getErrorCombinations(int correctedWords, 
             int length, String initialPhrase, int maximumCorrections) {
         
-        // get initial corrections
+        // get corrections that were done by correction of words that are not in the vocabulary
         boolean[] initialCorrections = new boolean[length];
         String[] wordsInInitialPhrase = initialPhrase.trim().split(" ");
         for (int word = 0; word < length; word++) {
@@ -192,16 +196,30 @@ public class SpellCorrector {
                 maximumCorrections);
     }
     
+    /**
+     * Looks for words that are in the vocabulary but may still be wrong. Returns combinations of 
+     * positions that may contain an error.
+     * 
+     * This method pays attention to the constraints that there are never two consecutive errors and
+     * that the maximum amount of errors is 2.
+     * 
+     * @param correctedWords number of words that are already marked as (scheduled to be) corrected
+     * @param length length of the phrase
+     * @param corrections boolean array of length length where corrections[l] means that he word at 
+     *  position l is already (scheduled to be) corrected
+     * @param maximumCorrections the maximum number of corrections that are allowed
+     * @return array of boolean arrays which indicate at which positions errors may exist
+     */
     public HashSet<boolean[]> recursiveErrorCombinations(int correctedWords, 
             int length, boolean[] corrections, int maximumCorrections) {
-        if (correctedWords == maximumCorrections) { // leaf
-            HashSet<boolean[]> list = new HashSet<boolean[]>();
+        if (correctedWords == maximumCorrections) { // leaf, no more corrections allowed
+            HashSet<boolean[]> list = new HashSet<>();
             list.add(corrections);
             return list;
         } else { // add one correction
-            HashSet<boolean[]> list = new HashSet<boolean[]>();
+            HashSet<boolean[]> list = new HashSet<>();
             list.add(corrections);
-            for (int word = 0; word < length; word++) {
+            for (int word = 0; word < length; word++) { // for all words
                 // check if this word as well as the word before and after have
                 // not been corrected
                 if (corrections[word] == false 
@@ -210,9 +228,9 @@ public class SpellCorrector {
                 {
                     boolean[] newCorrections = corrections.clone();
                     newCorrections[word] = true;
-                    // add this combination
+                    // add this correction to list
                     list.add(newCorrections);
-                    // add children combinations
+                    // add all corrections based on this to the list recursively
                     list.addAll(recursiveErrorCombinations(correctedWords + 1,
                             length, newCorrections, maximumCorrections));
                 }
