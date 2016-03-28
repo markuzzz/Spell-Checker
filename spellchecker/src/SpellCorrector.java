@@ -63,7 +63,7 @@ public class SpellCorrector {
                                 words[i + 1]));
                     }
                     // set the final probability as a linear combination
-                    prob = .5 * prob + 3 * bigramprob;
+                    prob = 300 * prob + 8 * bigramprob;
                     
                     if (prob > highestProb) {
                         // this is the best candidate so far

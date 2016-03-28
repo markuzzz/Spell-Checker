@@ -53,10 +53,10 @@ public class SpellChecker {
                 "at the home locations there were traces of water",
                 "at the home locations there were traces of water",
                 "at the home locations there were traces of water",
-                "the development of diabetes is present in mice that carry a transgen",
-                "the development of diabetes is present in mice that carry a transgen",
-                "the development of diabetes is present in mice that carry a transgen",
-                "the development of diabetes is present in mice that carry a transgen"
+                "the development of diabetes is present in mice that carry a transgene",
+                "the development of diabetes is present in mice that carry a transgene",
+                "the development of diabetes is present in mice that carry a transgene",
+                "the development of diabetes is present in mice that carry a transgene",
             };
             
             int grade = 0;
