@@ -50,17 +50,21 @@ public class SpellCorrector {
                 Map<String,Double> candidates = getCandidateWords(words[i]);
                 // for all candidate words check the probabilities of their bigrams
                 for (String canWord : candidates.keySet()) {
-                    double prob = Math.log(candidates.get(canWord));
+                    double prob = Math.log(candidates.get(canWord)); // probability for the correction
+                    double bigramprob = 1; // probability for the bigrams
                     if (i != 0) {
                         // if not the first word, evaluate bigram with word in front
-                        prob = prob + Math.log(cr.getSmoothedCount(words[i - 1] + " " 
+                        bigramprob *= Math.log(cr.getSmoothedCount(words[i - 1] + " " 
                                 + canWord));
                     }
                     if (i != (words.length - 1)) {
                         // if not the last word, evaluate bigram with word after
-                        prob = prob + Math.log(cr.getSmoothedCount(canWord + " " +
+                        bigramprob *= Math.log(cr.getSmoothedCount(canWord + " " +
                                 words[i + 1]));
                     }
+                    // set the final probability as a linear combination
+                    prob = .5 * prob + 1 * bigramprob;
+                    
                     if (prob > highestProb) {
                         // this is the best candidate so far
                         highestProb = prob;
@@ -84,7 +88,7 @@ public class SpellCorrector {
             }
         }
         
-        //get all combinations of words that contain an error
+        // get all combinations of words that contain an error
         HashSet<boolean[]> errorCombinations = 
                 getErrorCombinations(correctedWords, words.length, phrase, 2);
         
@@ -97,16 +101,16 @@ public class SpellCorrector {
         //evaluate the candidate sentences and pick the best
         highestProb = Integer.MIN_VALUE;
         suggestion = words;
-        for (String[] canSen : candidateSentences.keySet()) { //evaluate each candidate
+        for (String[] canSen : candidateSentences.keySet()) { // evaluate each candidate
             double prob;
             prob = Math.log(evaluateBigramSentence(canSen)); 
             // use the noisy channel probabilities for the corrected words
             for (double noisyProb: candidateSentences.get(canSen)) { 
-                if (Double.compare(noisyProb, 1.0) != 0) { //corrected word
+                if (Double.compare(noisyProb, 1.0) != 0) { // corrected word
                     prob += Math.log(noisyProb);
                 }
             }
-            if (prob > highestProb) { //new best candidate
+            if (prob > highestProb) { // new best candidate
                 highestProb = prob;
                 suggestion = canSen;
             }
@@ -144,10 +148,10 @@ public class SpellCorrector {
      * @param words original sentence
      */
     public void getCandidateSentence(boolean[] errorCombination, Map sentences, String[] words) {
-        double[] probabilities = new double[words.length]; //noisy channel probabilities per word
+        double[] probabilities = new double[words.length]; // noisy channel probabilities per word
         String[] newSentence = words.clone();
         for (int i = 0; i < words.length; i++) {
-            if (errorCombination[i] == true) { //assume word is wrong
+            if (errorCombination[i] == true) { // assume word is wrong
                 double prob;
                 double highestProb = Integer.MIN_VALUE;
                 String finalCandidate = "";
@@ -180,7 +184,7 @@ public class SpellCorrector {
                 probabilities[i] = 1.0;
             }
         }
-        sentences.put(newSentence, probabilities); //add sentence to map
+        sentences.put(newSentence, probabilities); // add sentence to map
     }
     
     /**
